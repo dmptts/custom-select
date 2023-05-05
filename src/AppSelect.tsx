@@ -1,6 +1,7 @@
-import { SelectHTMLAttributes, useState } from 'react';
+import { MouseEvent, SelectHTMLAttributes, useState } from 'react';
 import styled from 'styled-components';
 import ChevronIcon from './img/icon-chevron.svg';
+import { ErrorOption } from 'react-hook-form';
 
 interface IOption {
   value: string;
@@ -8,30 +9,46 @@ interface IOption {
 }
 interface IAppSelectProps extends SelectHTMLAttributes<HTMLElement> {
   options: IOption[];
+  error?: ErrorOption;
+  onChange: (value: any) => void;
 }
 
-export default function AppSelect({ options }: IAppSelectProps) {
+export default function AppSelect({
+  options,
+  error,
+  onChange,
+}: IAppSelectProps) {
   const [isOpened, setIsOpened] = useState(false);
+  const [selectText, setSelectText] = useState('Выберите опцию');
 
   const handleSelectClick = () => setIsOpened(!isOpened);
 
+  const handleOptionClick = (e: MouseEvent<HTMLButtonElement>) => {
+    onChange(e.currentTarget.value);
+    const label = options.find(
+      (option) => option.value === e.currentTarget.value
+    )?.label;
+    label && setSelectText(label);
+    setIsOpened(false);
+  };
+
   return (
     <Root $isOpened={isOpened}>
-      <Select onClick={handleSelectClick}></Select>
-      <ErrorMessage>Тестовое сообщение</ErrorMessage>
+      <Select onClick={handleSelectClick}>{selectText}</Select>
+      {/* {error && <ErrorMessage>Тестовое сообщение</ErrorMessage>} */}
       <OptionList>
         {options &&
           options.map((option) => (
-            <li>
-              <Option value={option.value}>{option.label}</Option>
+            <li key={option.value}>
+              <Option value={option.value} onClick={handleOptionClick}>
+                {option.label}
+              </Option>
             </li>
           ))}
       </OptionList>
     </Root>
   );
 }
-
-const SelectInput = styled.div``;
 
 const Select = styled.div`
   position: relative;
@@ -114,15 +131,15 @@ const Root = styled.div<{ $isOpened: boolean }>`
   }
 `;
 
-const ErrorMessage = styled.p`
-  position: absolute;
-  /* top: calc(100% + 6px); */
-  bottom: 0;
-  left: 0;
+// const ErrorMessage = styled.p`
+//   position: absolute;
+//   /* top: calc(100% + 6px); */
+//   bottom: 0;
+//   left: 0;
 
-  margin: 0;
+//   margin: 0;
 
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-error);
-`;
+//   font-size: 0.75rem;
+//   font-weight: 500;
+//   color: var(--color-error);
+// `;
