@@ -1,7 +1,14 @@
-import { MouseEvent, SelectHTMLAttributes, useState } from 'react';
+import {
+  ChangeEvent,
+  MouseEvent,
+  SelectHTMLAttributes,
+  useRef,
+  useState,
+} from 'react';
+import { FieldError } from 'react-hook-form';
 import styled from 'styled-components';
 import ChevronIcon from './img/icon-chevron.svg';
-import { ErrorOption } from 'react-hook-form';
+import { useClickOutside } from './useClickOutside';
 
 interface IOption {
   value: string;
@@ -9,36 +16,74 @@ interface IOption {
 }
 interface IAppSelectProps extends SelectHTMLAttributes<HTMLElement> {
   options: IOption[];
-  error?: ErrorOption;
   onChange: (value: any) => void;
+  error?: FieldError;
+  searchable?: boolean;
 }
 
 export default function AppSelect({
   options,
-  error,
+  value,
+  placeholder,
   onChange,
+  searchable = false,
+  error,
 }: IAppSelectProps) {
   const [isOpened, setIsOpened] = useState(false);
-  const [selectText, setSelectText] = useState('Выберите опцию');
+  const [filteredOptions, setFilteredOptions] = useState(options);
+  const [selectedOption, setSelectedOption] = useState({
+    value: value ?? '',
+    label: placeholder ?? 'Выберите опцию',
+  });
+  const ref = useRef(null);
+  useClickOutside(ref, () => setIsOpened(false));
 
   const handleSelectClick = () => setIsOpened(!isOpened);
 
+  const handleSelectChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFilteredOptions(
+      options.filter((option) => option.label.includes(e.target.value))
+    );
+    onChange(e.target.value);
+  };
+
   const handleOptionClick = (e: MouseEvent<HTMLButtonElement>) => {
     onChange(e.currentTarget.value);
-    const label = options.find(
-      (option) => option.value === e.currentTarget.value
-    )?.label;
-    label && setSelectText(label);
+    setSelectedOption({
+      value: e.currentTarget.value,
+      label:
+        options.find((option) => option.value === e.currentTarget.value)
+          ?.label ??
+        placeholder ??
+        'Выберите опцию',
+    });
     setIsOpened(false);
   };
 
   return (
-    <Root $isOpened={isOpened}>
-      <Select onClick={handleSelectClick}>{selectText}</Select>
-      {/* {error && <ErrorMessage>Тестовое сообщение</ErrorMessage>} */}
+    <Root $isOpened={isOpened} ref={ref}>
+      <SelectWrapper>
+        {searchable ? (
+          <Select
+            as="input"
+            onClick={handleSelectClick}
+            onChange={handleSelectChange}
+            value={value}
+            placeholder={placeholder}
+          />
+        ) : (
+          <Select onClick={handleSelectClick}>{selectedOption.label}</Select>
+        )}
+      </SelectWrapper>
+      {error && <ErrorMessage>{error.message}</ErrorMessage>}
       <OptionList>
-        {options &&
-          options.map((option) => (
+        <li>
+          <Option onClick={handleOptionClick} value="">
+            {placeholder ?? 'Выберите опцию'}
+          </Option>
+        </li>
+        {filteredOptions &&
+          filteredOptions.map((option) => (
             <li key={option.value}>
               <Option value={option.value} onClick={handleOptionClick}>
                 {option.label}
@@ -51,8 +96,6 @@ export default function AppSelect({
 }
 
 const Select = styled.div`
-  position: relative;
-
   width: 100%;
   padding: 11px 21px;
 
@@ -65,6 +108,14 @@ const Select = styled.div`
   border: 1px solid #e6e6e6;
   border-radius: 5px;
   cursor: 'pointer';
+
+  &::placeholder {
+    color: #000;
+  }
+`;
+
+const SelectWrapper = styled.div`
+  position: relative;
 
   &::after {
     position: absolute;
@@ -121,7 +172,7 @@ const Root = styled.div<{ $isOpened: boolean }>`
 
   padding-bottom: 24px;
 
-  ${Select}::after {
+  ${SelectWrapper}::after {
     transform: translateY(-50%)
       ${({ $isOpened }) => $isOpened && 'rotate(180deg)'};
   }
@@ -131,15 +182,15 @@ const Root = styled.div<{ $isOpened: boolean }>`
   }
 `;
 
-// const ErrorMessage = styled.p`
-//   position: absolute;
-//   /* top: calc(100% + 6px); */
-//   bottom: 0;
-//   left: 0;
+const ErrorMessage = styled.p`
+  position: absolute;
+  /* top: calc(100% + 6px); */
+  bottom: 0;
+  left: 0;
 
-//   margin: 0;
+  margin: 0;
 
-//   font-size: 0.75rem;
-//   font-weight: 500;
-//   color: var(--color-error);
-// `;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-error);
+`;

@@ -1,14 +1,35 @@
+import { useEffect } from 'react';
 import { SubmitHandler, useForm, Controller } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
 import AppSelect from './AppSelect';
 import { data } from './options';
-import { useEffect } from 'react';
+
+const validationSchema = yup.object({
+  // codecName: yup.string().min(4).required(),
+  codecParent: yup.string().required(),
+  // codecDescription: yup.string().min(4).required(),
+  lineTo: yup.string().required(),
+});
 
 interface IFormFields {
   codecParent: string;
+  lineTo: string;
 }
 
 export default function AppForm() {
-  const { control, handleSubmit, watch } = useForm<IFormFields>();
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<IFormFields>({
+    resolver: yupResolver(validationSchema),
+    defaultValues: {
+      codecParent: '',
+      lineTo: '',
+    },
+  });
   const onSubmit: SubmitHandler<IFormFields> = (data) => console.log(data);
 
   const options = data.devices.map((extendableClass: { class: string }) => ({
@@ -16,6 +37,11 @@ export default function AppForm() {
     label:
       extendableClass.class.match(/[\w\d]+$/)?.[0] ?? extendableClass.class,
   }));
+
+  const lineToOptions = [
+    { value: 'cmd', label: 'cmd' },
+    { value: 'thisCall', label: 'thisCall' },
+  ];
 
   useEffect(() => {
     const subscription = watch((value, { name, type }) =>
@@ -29,13 +55,28 @@ export default function AppForm() {
       <Controller
         name="codecParent"
         control={control}
-        rules={{ required: true }}
-        render={({ field: { onBlur, onChange }, fieldState: { error } }) => (
+        render={({ field: { value, onBlur, onChange } }) => (
           <AppSelect
+            value={value}
             onBlur={onBlur}
             onChange={onChange}
             options={options}
-            error={error}
+            error={errors.codecParent}
+          />
+        )}
+      />
+      <Controller
+        name="lineTo"
+        control={control}
+        render={({ field: { value, onBlur, onChange } }) => (
+          <AppSelect
+            value={value}
+            onBlur={onBlur}
+            onChange={onChange}
+            options={lineToOptions}
+            error={errors.lineTo}
+            searchable
+            placeholder="Не принимать"
           />
         )}
       />
